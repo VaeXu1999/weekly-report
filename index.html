@@ -181,26 +181,10 @@ table.ct tr:last-child td{border-bottom:none}
       <div class="snav-lbl">项目</div>
       <div id="proj-nav"></div>
     </div>
-    <div class="ssec">
-      <div class="snav-lbl">登录</div>
-      <div id="auth-box" style="padding:8px 0 4px">
-<div id="auth-loggedout">
-  <div class="small" style="margin-bottom:6px">仅允许 @envision-energy.com</div>
-  <input type="text" id="email" placeholder="name@envision-energy.com" style="margin-bottom:8px">
-  <input type="password" id="password" placeholder="密码" style="margin-bottom:8px">
-  <button class="sbb so" onclick="signIn()" style="margin-bottom:4px">登录</button>
-  <button class="sbb da" onclick="signUp()">注册新账号</button>
-</div>
-        <div id="auth-loggedin" style="display:none">
-          <div class="small" id="me" style="margin-bottom:8px"></div>
-          <button class="sbb so" onclick="signOut()">退出登录</button>
-        </div>
-      </div>
-    </div>
+
     <div class="sbot">
       <button class="sbb da" onclick="addNewWeek()">+ 新建本周填报</button>
       <button class="sbb so" onclick="showAddProj()">+ 新建项目</button>
-      <button class="sbb so" onclick="showMembers()">成员管理…</button>
       <button class="sbb so" style="color:var(--r)" onclick="showDeleteProj()">删除项目…</button>
     </div>
   </aside>
@@ -277,73 +261,12 @@ function PST(pd){const v=Object.values(pd.lights).filter(x=>x);if(!v.length)retu
 // =====================
 // Auth
 // =====================
-const DOMAIN = 'envision-energy.com';
 
-window.signIn = async function signIn(){
-  const email = (document.getElementById('email')?.value||'').trim();
-  const password = document.getElementById('password')?.value||'';
-  if(!email||!password) return toast('请输入邮箱和密码');
-  if(!email.endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if(error) return toast('登录失败：'+error.message);
-  await syncAuthUI();
-  await boot();
-}
-
-window.signUp = async function signUp(){
-  const email = (document.getElementById('email')?.value||'').trim();
-  const password = document.getElementById('password')?.value||'';
-  if(!email||!password) return toast('请输入邮箱和密码');
-  if(!email.endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
-  if(password.length < 6) return toast('密码至少6位');
-  const { error } = await sb.auth.signUp({ email, password });
-  if(error) return toast('注册失败：'+error.message);
-  toast('注册成功，正在登录…');
-  const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
-  if(e2) return toast('自动登录失败，请手动登录');
-  await syncAuthUI();
-  await boot();
-}
-
-window.signOut = async function signOut(){
-  await sb.auth.signOut();
-  toast('已退出');
-}
-
-async function syncAuthUI(){
-  const { data: { session } } = await sb.auth.getSession();
-  const loggedIn = !!session;
-  document.getElementById('auth-loggedout').style.display = loggedIn ? 'none' : 'block';
-  document.getElementById('auth-loggedin').style.display = loggedIn ? 'block' : 'none';
-  if(loggedIn){
-    document.getElementById('me').textContent = session.user.email;
-  }
-}
-
-sb.auth.onAuthStateChange(async (_event, session)=>{
-  await syncAuthUI();
-  if(session) await boot();
-  else {
-    // clear
-    PROJECTS=[];WEEKS=[];REPORTS=new Map();
-    curWeek=null;curProj=null;
-    document.getElementById('week-list').innerHTML='';
-    document.getElementById('proj-nav').innerHTML='';
-    document.getElementById('view-summary').innerHTML='<div class="small">请先登录</div>';
-    document.getElementById('view-form').innerHTML='';
-    document.getElementById('view-compare').innerHTML='';
-  }
-});
 
 // =====================
 // Data loading
 // =====================
-async function ensureProfile(){
-  // optional: relies on DB trigger, but keep a client-side fallback
-  const { data: { user } } = await sb.auth.getUser();
-  if(!user) return;
-  await sb.from('profiles').upsert({ id: user.id, email: user.email }, { onConflict:'id' });
-}
+
 
 async function loadProjects(){
   const { data, error } = await sb.from('projects').select('*').order('created_at');
@@ -381,11 +304,9 @@ async function loadReports(){
 
 async function boot(){
   try{
-    await ensureProfile();
     await loadProjects();
     await loadWeeks();
 
-    // If first time, create one week so UI works
     if(!WEEKS.length){
       const { data, error } = await sb.from('weeks').insert({ label:'W13', range:'3/24–3/30' }).select('*').single();
       if(error) throw error;
@@ -397,7 +318,7 @@ async function boot(){
     if(!PROJECTS.length){
       document.getElementById('week-list').innerHTML='';
       document.getElementById('proj-nav').innerHTML='';
-      document.getElementById('view-summary').innerHTML='<div class="small">你当前没有任何项目权限。请让项目 owner 把你加入项目。</div>';
+      document.getElementById('view-summary').innerHTML='<div class="small">暂无项目，点击左下角"新建项目"开始。</div>';
       return;
     }
 
@@ -516,8 +437,6 @@ function renderCompare(){
 // =====================
 async function upsertCurrentReport(submittedFlag){
   const pd = GPD(curWeek,curProj);
-  const { data: { user } } = await sb.auth.getUser();
-  if(!user) { toast('请先登录'); return; }
 
   const payload = {
     week_id: curWeek,
@@ -526,14 +445,12 @@ async function upsertCurrentReport(submittedFlag){
     lights: pd.lights,
     status: pd.status,
     actions: pd.actions,
-    updated_by: user.id,
     updated_at: new Date().toISOString()
   };
 
   const { error } = await sb.from('weekly_reports').upsert(payload, { onConflict:'week_id,project_id' });
   if(error) throw error;
 
-  // keep cache consistent
   pd.submitted = !!payload.submitted;
 }
 
@@ -604,13 +521,8 @@ window.confirmAdd = async function confirmAdd(btn){
   const pm=document.getElementById('mp-p').value.trim();
   if(!name){document.getElementById('mp-n').focus();return;}
   try{
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user) return toast('请先登录');
-
-    const { data: proj, error } = await sb.from('projects').insert({ name, sub, pm, owner_id: user.id }).select('*').single();
+    const { data: proj, error } = await sb.from('projects').insert({ name, sub, pm }).select('*').single();
     if(error) throw error;
-
-   // 不需要手动插 project_members，触发器自动处理
 
     PROJECTS.push(proj);
     curProj=proj.id;
@@ -650,68 +562,7 @@ window.confirmDel = async function confirmDel(btn){
   }catch(e){toast('删除失败：'+(e?.message||e));}
 }
 
-// =====================
-// Members UI (owner only)
-// =====================
-window.showMembers = async function showMembers(){
-  if(!curProj) return toast('请先选择项目');
-  try{
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user) return toast('请先登录');
 
-    const proj = PROJECTS.find(p=>p.id===curProj);
-    if(!proj) return toast('项目不存在');
-    if(proj.owner_id !== user.id) return toast('仅项目 owner 可管理成员');
-
-    const ov=document.createElement('div');ov.className='moverlay';
-    ov.innerHTML=`<div class="modal"><div class="modal-t">成员管理 · ${eh(proj.name)}</div>
-      <div class="mlbl">添加成员（公司邮箱）</div>
-      <input type="text" id="mb-email" placeholder="name@${DOMAIN}" style="margin-bottom:10px">
-      <button class="btn pr" style="width:100%" onclick="addMember()">添加</button>
-      <div style="height:14px"></div>
-      <div class="mlbl">当前成员</div>
-      <div id="mb-list" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:var(--rad);padding:8px;background:var(--bg)"></div>
-      <div class="mfoot"><button class="btn" onclick="this.closest('.moverlay').remove()">关闭</button></div>
-    </div>`;
-    document.body.appendChild(ov);
-    await refreshMemberList();
-    setTimeout(()=>document.getElementById('mb-email')?.focus(),50);
-  }catch(e){toast('打开失败：'+(e?.message||e));}
-}
-
-window.refreshMemberList = async function refreshMemberList(){
-  const list = document.getElementById('mb-list');
-  if(!list) return;
-  const { data, error } = await sb.rpc('list_project_members', { p_project_id: curProj });
-  if(error) { list.innerHTML = `<div class="small">加载失败：${eh(error.message)}</div>`; return; }
-  if(!data?.length){ list.innerHTML = `<div class="small">暂无成员</div>`; return; }
-  list.innerHTML = data.map(m=>{
-    const isOwner = m.role==='owner';
-    return `<div style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-light)">
-      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${eh(m.email||'')}</div>
-      <div class="small" style="font-family:var(--mono)">${eh(m.role||'member')}</div>
-      <button class="del" ${isOwner?'disabled style="opacity:.35;cursor:not-allowed"':''} onclick="removeMember('${m.user_id}')">✕</button>
-    </div>`;
-  }).join('');
-}
-
-window.addMember = async function addMember(){
-  const email = (document.getElementById('mb-email')?.value||'').trim().toLowerCase();
-  if(!email) return toast('请输入邮箱');
-  if(!email.endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
-  const { error } = await sb.rpc('add_project_member_by_email', { p_project_id: curProj, p_email: email });
-  if(error) return toast('添加失败：'+error.message);
-  toast('已添加成员');
-  document.getElementById('mb-email').value='';
-  await refreshMemberList();
-}
-
-window.removeMember = async function removeMember(userId){
-  const { error } = await sb.rpc('remove_project_member', { p_project_id: curProj, p_user_id: userId });
-  if(error) return toast('移除失败：'+error.message);
-  toast('已移除成员');
-  await refreshMemberList();
-}
 
 // =====================
 // Navigation
@@ -738,10 +589,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function eh(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // Initial
-await syncAuthUI();
-const { data: { session } } = await sb.auth.getSession();
-if(session) await boot();
-else document.getElementById('view-summary').innerHTML='<div class="small">请先登录</div>';
+await boot();
 </script>
 </body>
 </html>
