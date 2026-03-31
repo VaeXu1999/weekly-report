@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目周报系统（Supabase 协同版）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F5F3EE;--surface:#FFF;--surface2:#EDEAE3;--border:#D8D4CB;--border-light:#E8E4DC;
+  --text:#1A1916;--text-2:#6B6760;--text-3:#9C9890;
+  --g:#1A7A52;--g-bg:#E8F5EE;--g-b:#A8D9BC;
+  --y:#8A5E0A;--y-bg:#FDF3DC;--y-b:#E8C870;
+  --r:#8B2020;--r-bg:#FDEAEA;--r-b:#E8A0A0;
+  --accent:#2A5C8A;--mono:'DM Mono',monospace;--sans:'Noto Sans SC',sans-serif;
+  --rad:8px;--rad-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);font-family:var(--sans);color:var(--text);min-height:100vh}
+.shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{padding:28px 32px;min-width:0}
+.logo{padding:20px 20px 16px;border-bottom:1px solid var(--border-light)}
+.logo-t{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.02em}
+.logo-s{font-size:11px;color:var(--text-3);margin-top:3px;font-family:var(--mono)}
+.snav{padding:14px 16px 10px}
+.snav-lbl{font-size:11px;color:var(--text-3);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.wi{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--rad);cursor:pointer;margin-bottom:2px;font-size:12px;color:var(--text-2);transition:background .1s}
+.wi:hover{background:var(--bg)}
+.wi.active{background:var(--text);color:#fff}
+.wi.active .wd{color:rgba(255,255,255,.5)}
+.wd{font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.ssec{padding:10px 16px 8px;border-top:1px solid var(--border-light);margin-top:4px}
+.pni{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--rad);cursor:pointer;margin-bottom:1px;transition:background .1s}
+.pni:hover{background:var(--bg)}
+.pni.active{background:var(--bg)}
+.pni-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--border)}
+.pni-name{font-size:12px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pni-st{font-size:10px;font-family:var(--mono);color:var(--text-3);flex-shrink:0}
+.sbot{margin-top:auto;padding:10px 16px 14px;border-top:1px solid var(--border-light);display:flex;flex-direction:column;gap:6px}
+.sbb{width:100%;padding:7px;border-radius:var(--rad);background:none;cursor:pointer;font-size:12px;color:var(--text-2);font-family:var(--sans);transition:all .1s;text-align:center}
+.sbb.da{border:1px dashed var(--border)}
+.sbb.da:hover{background:var(--bg);border-color:var(--text-3)}
+.sbb.so{border:1px solid var(--border)}
+.sbb.so:hover{background:var(--bg)}
+.page-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-title{font-size:22px;font-weight:500}
+.page-sub{font-size:13px;color:var(--text-2);margin-top:4px}
+.hactions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{padding:7px 16px;border-radius:var(--rad);font-size:13px;font-family:var(--sans);cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-2);transition:all .1s}
+.btn:hover{background:var(--bg);border-color:var(--text-3)}
+.btn.gr{background:var(--g);color:#fff;border-color:var(--g)}
+.btn.gr:hover{background:#155e3e}
+.btn.pr{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn.pr:hover{background:#2d2b27}
+.btn.da{background:var(--r-bg);color:var(--r);border-color:var(--r-b)}
+.btn.da:hover{background:var(--r-b)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.tab{padding:8px 16px 10px;font-size:13px;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .1s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);border-bottom-color:var(--text)}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:28px}
+.pc{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-lg);padding:16px;cursor:pointer;transition:all .15s}
+.pc:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.pc-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:8px}
+.pc-name{font-size:14px;font-weight:500}
+.pc-sub{font-size:11px;color:var(--text-3);margin-top:3px;font-family:var(--mono)}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;font-family:var(--mono);white-space:nowrap;flex-shrink:0;border:1px solid}
+.pill.done{background:var(--g-bg);color:var(--g);border-color:var(--g-b)}
+.pill.draft{background:var(--y-bg);color:var(--y);border-color:var(--y-b)}
+.pill.empty{background:var(--surface2);color:var(--text-3);border-color:var(--border)}
+.lmini{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.lm{display:flex;flex-direction:column;align-items:center;gap:4px}
+.lmd{width:12px;height:12px;border-radius:50%;background:var(--surface2);border:1px solid var(--border)}
+.lmd.g{background:var(--g);border-color:var(--g)}
+.lmd.y{background:#EF9F27;border-color:#EF9F27}
+.lmd.r{background:#E24B4A;border-color:#E24B4A}
+.lml{font-size:9px;color:var(--text-3);font-family:var(--mono);text-align:center;line-height:1.2}
+.sec-t{font-size:11px;font-weight:500;color:var(--text-3);margin-bottom:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-lg);overflow:hidden;margin-bottom:24px}
+table.at{width:100%;border-collapse:collapse;font-size:13px}
+table.at th{text-align:left;font-size:11px;color:var(--text-3);padding:10px 14px;font-weight:500;font-family:var(--mono);letter-spacing:.04em;background:var(--bg);border-bottom:1px solid var(--border)}
+table.at td{padding:10px 14px;border-bottom:1px solid var(--border-light);color:var(--text);vertical-align:middle}
+table.at tr:last-child td{border-bottom:none}
+table.at tr:hover td{background:var(--bg)}
+.dt{font-size:11px;padding:2px 7px;border-radius:20px;font-family:var(--mono);display:inline-block;border:1px solid}
+.tg{background:var(--g-bg);color:var(--g);border-color:var(--g-b)}
+.ty{background:var(--y-bg);color:var(--y);border-color:var(--y-b)}
+.tr{background:var(--r-bg);color:var(--r);border-color:var(--r-b)}
+.tn{background:var(--surface2);color:var(--text-3);border-color:var(--border)}
+.ptag{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--surface2);color:var(--text-2);font-family:var(--mono);white-space:nowrap}
+.form-wrap{max-width:760px}
+.psw{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.psb{padding:5px 12px;border-radius:var(--rad);border:1px solid var(--border);background:transparent;cursor:pointer;font-size:12px;font-family:var(--sans);color:var(--text-2);display:flex;align-items:center;gap:6px;transition:all .1s}
+.psb:hover{background:var(--bg)}
+.psb.active{border-color:var(--accent);color:var(--accent);background:var(--surface)}
+.psd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.lrow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.lc{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-lg);padding:14px 10px 12px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
+.lc:hover{border-color:var(--text-3)}
+.lc.sg{border-color:var(--g);background:var(--g-bg)}
+.lc.sy{border-color:#BA7517;background:var(--y-bg)}
+.lc.sr{border-color:#A32D2D;background:var(--r-bg)}
+.lc-lbl{font-size:11px;color:var(--text-2);margin-bottom:9px;font-weight:500;font-family:var(--mono)}
+.lc.sg .lc-lbl{color:var(--g)}
+.lc.sy .lc-lbl{color:var(--y)}
+.lc.sr .lc-lbl{color:var(--r)}
+.tl{display:flex;gap:5px;justify-content:center;margin-bottom:6px}
+.td{width:16px;height:16px;border-radius:50%;opacity:.18}
+.td.on{opacity:1}
+.td-g{background:#1A7A52}
+.td-y{background:#EF9F27}
+.td-r{background:#E24B4A}
+.lc-st{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.lc.sg .lc-st{color:var(--g)}
+.lc.sy .lc-st{color:var(--y)}
+.lc.sr .lc-st{color:var(--r)}
+.dcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-lg);padding:16px;margin-bottom:10px}
+.dcard-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.dbadge{font-size:12px;padding:3px 10px;border-radius:20px;font-family:var(--mono);border:1px solid}
+.dbg{background:var(--g-bg);color:var(--g);border-color:var(--g-b)}
+.dby{background:var(--y-bg);color:var(--y);border-color:var(--y-b)}
+.dbr{background:var(--r-bg);color:var(--r);border-color:var(--r-b)}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg2.s{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase}
+textarea,input[type=text],select{width:100%;font-size:13px;font-family:var(--sans);color:var(--text);border:1px solid var(--border);border-radius:var(--rad);padding:8px 10px;background:var(--bg);resize:none;outline:none;transition:border-color .1s}
+textarea:focus,input[type=text]:focus,select:focus{border-color:var(--accent);background:var(--surface)}
+select{height:34px;cursor:pointer}
+.div{border:none;border-top:1px solid var(--border);margin:20px 0}
+.aft{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.aft th{text-align:left;font-size:11px;color:var(--text-3);padding:0 8px 8px 0;font-weight:500;font-family:var(--mono);letter-spacing:.04em}
+.aft td{padding:3px 8px 3px 0;vertical-align:middle}
+.aft td:last-child{padding-right:0}
+.del{width:26px;height:26px;border:1px solid var(--border);border-radius:var(--rad);background:none;cursor:pointer;color:var(--text-3);font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.del:hover{border-color:#E24B4A;color:#E24B4A;background:var(--r-bg)}
+.add-r{width:100%;margin-top:8px;padding:7px;border:1px dashed var(--border);border-radius:var(--rad);background:none;cursor:pointer;font-size:12px;color:var(--text-3);font-family:var(--sans);transition:all .1s}
+.add-r:hover{background:var(--bg);border-color:var(--text-3);color:var(--text-2)}
+.ffoot{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;align-items:center}
+.smsg{font-size:12px;color:var(--g);font-family:var(--mono);opacity:0;transition:opacity .3s}
+.smsg.show{opacity:1}
+.cpb{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-lg);overflow:hidden;margin-bottom:16px}
+.cpb-hd{padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.cpb-name{font-size:13px;font-weight:500}
+.cpb-sub{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+table.ct{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+table.ct th{text-align:center;font-size:11px;color:var(--text-3);padding:8px 10px;font-weight:500;font-family:var(--mono);background:var(--bg);border-bottom:1px solid var(--border)}
+table.ct th:first-child{text-align:left;width:110px}
+table.ct td{padding:10px;border-bottom:1px solid var(--border-light);text-align:center}
+table.ct td:first-child{text-align:left;font-family:var(--mono);font-size:11px;color:var(--text-2);padding-left:16px}
+table.ct tr:last-child td{border-bottom:none}
+.cdot{width:18px;height:18px;border-radius:50%;margin:0 auto}
+.cdot.g{background:var(--g)}
+.cdot.y{background:#EF9F27}
+.cdot.r{background:#E24B4A}
+.cdot.n{background:var(--surface2);border:1px solid var(--border)}
+.clbl{font-size:10px;color:var(--text-3);margin-top:3px;font-family:var(--mono)}
+.cc{background:var(--y-bg)}
+.moverlay{position:fixed;inset:0;background:rgba(26,25,22,.45);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--surface);border-radius:var(--rad-lg);padding:24px;width:360px;max-width:90vw;border:1px solid var(--border)}
+.modal-t{font-size:15px;font-weight:500;margin-bottom:16px}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.mlbl{font-size:12px;color:var(--text-3);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--bg);font-size:13px;padding:10px 18px;border-radius:var(--rad);font-family:var(--mono);opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:200}
+.toast.show{opacity:1;transform:translateY(0)}
+.small{font-size:11px;color:var(--text-3)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-t">PROJECT STATUS</div><div class="logo-s">越南代表处 · 周报系统</div></div>
+    <div class="snav">
+      <div class="snav-lbl">周次</div>
+      <div id="week-list"></div>
+    </div>
+    <div class="ssec">
+      <div class="snav-lbl">项目</div>
+      <div id="proj-nav"></div>
+    </div>
+    <div class="ssec">
+      <div class="snav-lbl">登录</div>
+      <div id="auth-box" style="padding:8px 0 4px">
+        <div id="auth-loggedout">
+          <div class="small" style="margin-bottom:6px">仅允许 @envision-energy.com</div>
+          <input type="text" id="email" placeholder="name@envision-energy.com" style="margin-bottom:8px">
+          <button class="sbb so" onclick="sendMagicLink()">发送登录链接</button>
+        </div>
+        <div id="auth-loggedin" style="display:none">
+          <div class="small" id="me" style="margin-bottom:8px"></div>
+          <button class="sbb so" onclick="signOut()">退出登录</button>
+        </div>
+      </div>
+    </div>
+    <div class="sbot">
+      <button class="sbb da" onclick="addNewWeek()">+ 新建本周填报</button>
+      <button class="sbb so" onclick="showAddProj()">+ 新建项目</button>
+      <button class="sbb so" onclick="showMembers()">成员管理…</button>
+      <button class="sbb so" style="color:var(--r)" onclick="showDeleteProj()">删除项目…</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="page-hd">
+      <div><div class="page-title" id="page-title">项目周报</div><div class="page-sub" id="page-sub"></div></div>
+      <div class="hactions">
+        <button class="btn gr" onclick="exportPDF()">导出 PDF</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="summary" onclick="switchTab('summary')">汇总</div>
+      <div class="tab" data-tab="form" onclick="switchTab('form')">填报</div>
+      <div class="tab" data-tab="compare" onclick="switchTab('compare')">跨周对比</div>
+    </div>
+    <div id="view-summary"></div>
+    <div id="view-form" style="display:none"></div>
+    <div id="view-compare" style="display:none"></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// =====================
+// Supabase config
+// =====================
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// TODO: 替换成你项目里的值（Settings -> API）
+const SUPABASE_URL = "https://axdvedkxnfkkqtnpxqts.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4ZHZlZGt4bmZra3F0bnB4cXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODE0MzMsImV4cCI6MjA5MDQ1NzQzM30.CesFKX_b0Jh9bG1DLaU3UJtIT8v--4POU_ArlR-BAVg";
+
+export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Expose to window for non-module onclick handlers
+window.sb = sb;
+
+// =====================
+// App state (in-memory cache)
+// =====================
+const DIMS=['Wind Resource','Land','Design Work','Grid','Permits'];
+const DS=['Wind','Land','Design','Grid','Permits'];
+
+let PROJECTS=[]; // from supabase
+let WEEKS=[];    // from supabase
+let REPORTS = new Map(); // key: weekId|projId -> pd
+
+let curWeek=null,curProj=null,curTab='summary';
+
+function emptyPD(){
+  return {
+    submitted:false,
+    lights:{0:'',1:'',2:'',3:'',4:''},
+    status:{0:{cur:'',blk:''},1:{cur:'',blk:''},2:{cur:'',blk:''},3:{cur:'',blk:''},4:{cur:'',blk:''}},
+    actions:[]
+  };
+}
+
+function key(wid,pid){return wid+'|'+pid;}
+function GW(id){return WEEKS.find(w=>w.id===id);}
+function GPD(wid,pid){
+  const k=key(wid,pid);
+  if(!REPORTS.has(k)) REPORTS.set(k, emptyPD());
+  return REPORTS.get(k);
+}
+
+function SL(s){return s==='g'?'畅通':s==='y'?'关注':s==='r'?'受阻':'—';}
+function LCC(s){return s==='g'?'sg':s==='y'?'sy':s==='r'?'sr':'';}
+function TC(s){return s==='g'?'tg':s==='y'?'ty':s==='r'?'tr':'tn';}
+function BC(s){return s==='g'?'dbg':s==='y'?'dby':'dbr';}
+function PDC(pd){const v=Object.values(pd.lights).filter(x=>x);if(!v.length)return'#D8D4CB';if(v.includes('r'))return'#E24B4A';if(v.includes('y'))return'#EF9F27';return'#1A7A52';}
+function PST(pd){const v=Object.values(pd.lights).filter(x=>x);if(!v.length)return'empty';return pd.submitted?'done':'draft';}
+
+// =====================
+// Auth
+// =====================
+const DOMAIN = 'envision-energy.com';
+
+window.sendMagicLink = async function sendMagicLink(){
+  const email = (document.getElementById('email')?.value || '').trim();
+  if(!email) return toast('请输入邮箱');
+  if(!email.toLowerCase().endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
+  const { error } = await sb.auth.signInWithOtp({ email });
+  if(error) return toast('发送失败：'+error.message);
+  toast('已发送登录链接，请查收邮箱');
+}
+
+window.signOut = async function signOut(){
+  await sb.auth.signOut();
+  toast('已退出');
+}
+
+async function syncAuthUI(){
+  const { data: { session } } = await sb.auth.getSession();
+  const loggedIn = !!session;
+  document.getElementById('auth-loggedout').style.display = loggedIn ? 'none' : 'block';
+  document.getElementById('auth-loggedin').style.display = loggedIn ? 'block' : 'none';
+  if(loggedIn){
+    document.getElementById('me').textContent = session.user.email;
+  }
+}
+
+sb.auth.onAuthStateChange(async (_event, session)=>{
+  await syncAuthUI();
+  if(session) await boot();
+  else {
+    // clear
+    PROJECTS=[];WEEKS=[];REPORTS=new Map();
+    curWeek=null;curProj=null;
+    document.getElementById('week-list').innerHTML='';
+    document.getElementById('proj-nav').innerHTML='';
+    document.getElementById('view-summary').innerHTML='<div class="small">请先登录</div>';
+    document.getElementById('view-form').innerHTML='';
+    document.getElementById('view-compare').innerHTML='';
+  }
+});
+
+// =====================
+// Data loading
+// =====================
+async function ensureProfile(){
+  // optional: relies on DB trigger, but keep a client-side fallback
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) return;
+  await sb.from('profiles').upsert({ id: user.id, email: user.email }, { onConflict:'id' });
+}
+
+async function loadProjects(){
+  const { data, error } = await sb.from('projects').select('*').order('created_at');
+  if(error) throw error;
+  PROJECTS = data || [];
+}
+
+async function loadWeeks(){
+  const { data, error } = await sb.from('weeks').select('*').order('created_at');
+  if(error) throw error;
+  WEEKS = data || [];
+}
+
+async function loadReports(){
+  if(!PROJECTS.length || !WEEKS.length){ REPORTS = new Map(); return; }
+  const projIds = PROJECTS.map(p=>p.id);
+  const weekIds = WEEKS.map(w=>w.id);
+  const { data, error } = await sb
+    .from('weekly_reports')
+    .select('*')
+    .in('project_id', projIds)
+    .in('week_id', weekIds);
+  if(error) throw error;
+
+  REPORTS = new Map();
+  (data||[]).forEach(r=>{
+    REPORTS.set(key(r.week_id, r.project_id), {
+      submitted: !!r.submitted,
+      lights: r.lights || {0:'',1:'',2:'',3:'',4:''},
+      status: r.status || {0:{cur:'',blk:''},1:{cur:'',blk:''},2:{cur:'',blk:''},3:{cur:'',blk:''},4:{cur:'',blk:''}},
+      actions: r.actions || []
+    });
+  });
+}
+
+async function boot(){
+  try{
+    await ensureProfile();
+    await loadProjects();
+    await loadWeeks();
+
+    // If first time, create one week so UI works
+    if(!WEEKS.length){
+      const { data, error } = await sb.from('weeks').insert({ label:'W13', range:'3/24–3/30' }).select('*').single();
+      if(error) throw error;
+      WEEKS=[data];
+    }
+
+    await loadReports();
+
+    if(!PROJECTS.length){
+      document.getElementById('week-list').innerHTML='';
+      document.getElementById('proj-nav').innerHTML='';
+      document.getElementById('view-summary').innerHTML='<div class="small">你当前没有任何项目权限。请让项目 owner 把你加入项目。</div>';
+      return;
+    }
+
+    curWeek = curWeek || WEEKS[WEEKS.length-1].id;
+    curProj = curProj || PROJECTS[0].id;
+
+    renderSidebar();
+    switchTab(curTab);
+  }catch(e){
+    toast('加载失败：'+(e?.message||e));
+    console.error(e);
+  }
+}
+
+// =====================
+// Rendering
+// =====================
+function renderSidebar(){
+  if(!curWeek){return;}
+  const w=GW(curWeek);
+  document.getElementById('week-list').innerHTML=[...WEEKS].reverse().map(wk=>{
+    const sub=PROJECTS.filter(p=>GPD(wk.id,p.id).submitted).length;
+    return`<div class="wi${wk.id===curWeek?' active':''}" onclick="selWeek('${wk.id}')"><span>${wk.label} <span style="font-size:11px;opacity:.6">${wk.range}</span></span><span class="wd">${sub}/${PROJECTS.length}</span></div>`;
+  }).join('');
+  document.getElementById('proj-nav').innerHTML=PROJECTS.map(p=>{
+    const pd=GPD(curWeek,p.id);
+    const st=PST(pd);
+    return`<div class="pni${p.id===curProj?' active':''}" onclick="selProj('${p.id}')"><div class="pni-dot" style="background:${PDC(pd)}"></div><span class="pni-name">${p.name}</span><span class="pni-st">${st==='done'?'✓':st==='draft'?'…':'—'}</span></div>`;
+  }).join('');
+  document.getElementById('page-title').textContent=`${w.label} 项目周报`;
+  document.getElementById('page-sub').textContent=`${w.range} · ${PROJECTS.filter(p=>GPD(curWeek,p.id).submitted).length}/${PROJECTS.length} 已提交`;
+}
+
+function renderSummary(){
+  const w=GW(curWeek);
+  let h=`<div class="proj-grid">`;
+  PROJECTS.forEach(p=>{
+    const pd=GPD(curWeek,p.id);const st=PST(pd);
+    const pc=st==='done'?'done':st==='draft'?'draft':'empty';
+    const pt=st==='done'?'已提交':st==='draft'?'草稿':'未填报';
+    const lights=DIMS.map((_,i)=>`<div class="lm"><div class="lmd ${pd.lights[i]||''}"></div><div class="lml">${DS[i]}</div></div>`).join('');
+    h+=`<div class="pc" onclick="openForm('${p.id}')"><div class="pc-hd"><div><div class="pc-name">${p.name}</div><div class="pc-sub">${p.sub||''}${p.pm?' · '+p.pm:''}</div></div><span class="pill ${pc}">${pt}</span></div><div class="lmini">${lights}</div></div>`;
+  });
+  h+=`</div>`;
+
+  const issues=[];
+  PROJECTS.forEach(p=>{
+    const pd=GPD(curWeek,p.id);
+    Object.entries(pd.lights).forEach(([i,s])=>{if((s==='r'||s==='y')&&pd.status[+i]?.blk)issues.push({proj:p.name,dim:DIMS[i],s,blk:pd.status[+i].blk});});
+  });
+  if(issues.length){
+    h+=`<div class="sec-t">需关注事项</div><div class="tbl-wrap"><table class="at"><thead><tr><th>项目</th><th>维度</th><th>状态</th><th>卡点描述</th></tr></thead><tbody>`;
+    issues.forEach(it=>{h+=`<tr><td><span class="ptag">${it.proj}</span></td><td><span class="dt tn">${it.dim}</span></td><td><span class="dt ${TC(it.s)}">${SL(it.s)}</span></td><td style="color:var(--text-2)">${it.blk}</td></tr>`;});
+    h+=`</tbody></table></div>`;
+  }
+
+  const aa=[];PROJECTS.forEach(p=>{GPD(curWeek,p.id).actions.forEach(a=>aa.push({...a,pn:p.name,pid:p.id}));});
+  h+=`<div class="sec-t">本周行动项汇总</div><div class="tbl-wrap"><table class="at"><thead><tr><th>项目</th><th>行动项</th><th>维度</th><th>负责人</th><th>Deadline</th></tr></thead><tbody>`;
+  if(aa.length){
+    aa.forEach(a=>{const ds=GPD(curWeek,a.pid).lights[+a.dim]||'n';h+=`<tr><td><span class="ptag">${a.pn}</span></td><td>${a.desc||'—'}</td><td><span class="dt ${TC(ds)}">${DS[+a.dim]}</span></td><td>${a.owner||'—'}</td><td style="font-family:var(--mono);font-size:12px">${a.dl||'—'}</td></tr>`;});
+  } else {
+    h+=`<tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:20px">暂无行动项</td></tr>`;
+  }
+  h+=`</tbody></table></div>`;
+
+  document.getElementById('view-summary').innerHTML=h;
+}
+
+function renderForm(){
+  const pd=GPD(curWeek,curProj);
+  let h=`<div class="form-wrap"><div class="psw">`;
+  PROJECTS.forEach(pp=>{const ppd=GPD(curWeek,pp.id);h+=`<button class="psb${pp.id===curProj?' active':''}" onclick="selProj('${pp.id}')"><span class="psd" style="background:${PDC(ppd)}"></span>${pp.name}</button>`;});
+  h+=`</div><div class="lrow">`;
+  DIMS.forEach((dim,i)=>{const s=pd.lights[i]||'';const c=LCC(s);h+=`<div class="lc${c?' '+c:''}" onclick="cycleLight(${i})"><div class="lc-lbl">${dim}</div><div class="tl"><div class="td td-g${s==='g'?' on':''}"></div><div class="td td-y${s==='y'?' on':''}"></div><div class="td td-r${s==='r'?' on':''}"></div></div><div class="lc-st">${SL(s)}</div></div>`;});
+  h+=`</div>`;
+
+  DIMS.forEach((dim,i)=>{
+    const s=pd.lights[i]||'';if(!s)return;
+    h+=`<div class="dcard"><div class="dcard-hd"><span class="dbadge ${BC(s)}">${dim} · ${SL(s)}</span></div><div class="fg2${s==='g'?' s':''}"><div class="fg"><label>现状</label><textarea rows="3" data-dim="${i}" data-field="cur" placeholder="简述当前进展…">${eh(pd.status[i]?.cur)}</textarea></div>${s!=='g'?`<div class="fg"><label>卡点</label><textarea rows="3" data-dim="${i}" data-field="blk" placeholder="当前阻碍或风险…">${eh(pd.status[i]?.blk)}</textarea></div>`:''}</div></div>`;
+  });
+
+  h+=`<hr class="div"><div class="sec-t" style="margin-bottom:12px">本周行动项</div><table class="aft"><colgroup><col style="width:42%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:6%"></colgroup><thead><tr><th>行动项描述</th><th>负责人</th><th>Deadline</th><th>维度</th><th></th></tr></thead><tbody id="ar">`;
+  pd.actions.forEach((a,ai)=>{h+=`<tr><td><input type="text" value="${eh(a.desc)}" data-ai="${ai}" data-field="desc" placeholder="行动项描述…"></td><td><input type="text" value="${eh(a.owner)}" data-ai="${ai}" data-field="owner" placeholder="负责人"></td><td><input type="text" value="${eh(a.dl)}" data-ai="${ai}" data-field="dl" placeholder="截止日期"></td><td><select data-ai="${ai}" data-field="dim">${DIMS.map((_,di)=>`<option value="${di}"${+a.dim===di?' selected':''}>${DS[di]}</option>`).join('')}</select></td><td><button class="del" onclick="delA(${ai})">✕</button></td></tr>`;});
+  h+=`</tbody></table><button class="add-r" onclick="addA()">+ 添加行动项</button><div class="ffoot"><span class="smsg" id="smsg">已保存草稿</span><button class="btn" onclick="saveDraft()">存草稿</button><button class="btn pr" onclick="submitF()">提交本周填报</button></div></div>`;
+  document.getElementById('view-form').innerHTML=h;
+
+  document.querySelectorAll('textarea[data-dim]').forEach(el=>el.addEventListener('input',e=>{GPD(curWeek,curProj).status[+e.target.dataset.dim][e.target.dataset.field]=e.target.value;}));
+  document.querySelectorAll('input[data-ai]').forEach(el=>el.addEventListener('input',e=>{GPD(curWeek,curProj).actions[+e.target.dataset.ai][e.target.dataset.field]=e.target.value;}));
+  document.querySelectorAll('select[data-ai]').forEach(el=>el.addEventListener('change',e=>{GPD(curWeek,curProj).actions[+e.target.dataset.ai][e.target.dataset.field]=e.target.value;}));
+}
+
+function renderCompare(){
+  const recent=WEEKS.slice(-4);
+  let h=`<div class="sec-t" style="margin-bottom:16px">近 ${recent.length} 周五维度状态对比</div>`;
+  PROJECTS.forEach(p=>{
+    h+=`<div class="cpb"><div class="cpb-hd"><span class="cpb-name">${p.name}</span><span class="cpb-sub">${p.sub||''}</span></div><table class="ct"><thead><tr><th>维度</th>`;
+    recent.forEach(w=>{h+=`<th>${w.label}<br><span style="font-weight:400;font-size:10px">${w.range}</span></th>`;});
+    h+=`</tr></thead><tbody>`;
+    DIMS.forEach((dim,i)=>{
+      h+=`<tr><td>${DS[i]}</td>`;
+      recent.forEach((w,wi)=>{
+        const s=GPD(w.id,p.id).lights?.[i]||'';
+        const prev=wi>0?(GPD(recent[wi-1].id,p.id).lights?.[i]||''):null;
+        const chg=prev!==null&&prev!==s&&prev!==''&&s!=='';
+        h+=`<td${chg?' class="cc"':''}><div class="cdot ${s||'n'}"></div><div class="clbl">${SL(s)}</div>${chg?`<div style="font-size:10px;color:var(--y);font-family:var(--mono);margin-top:1px">变化</div>`:''}</td>`;
+      });
+      h+=`</tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  });
+  document.getElementById('view-compare').innerHTML=h;
+}
+
+// =====================
+// Actions -> DB
+// =====================
+async function upsertCurrentReport(submittedFlag){
+  const pd = GPD(curWeek,curProj);
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user) { toast('请先登录'); return; }
+
+  const payload = {
+    week_id: curWeek,
+    project_id: curProj,
+    submitted: submittedFlag ?? pd.submitted,
+    lights: pd.lights,
+    status: pd.status,
+    actions: pd.actions,
+    updated_by: user.id,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await sb.from('weekly_reports').upsert(payload, { onConflict:'week_id,project_id' });
+  if(error) throw error;
+
+  // keep cache consistent
+  pd.submitted = !!payload.submitted;
+}
+
+window.saveDraft = async function saveDraft(){
+  try{
+    await upsertCurrentReport(false);
+    const m=document.getElementById('smsg');
+    if(m){m.classList.add('show');setTimeout(()=>m.classList.remove('show'),1800);}
+    renderSidebar();
+    if(curTab==='summary') renderSummary();
+  }catch(e){toast('保存失败：'+(e?.message||e));}
+}
+
+window.submitF = async function submitF(){
+  try{
+    await upsertCurrentReport(true);
+    toast('已提交 · '+(PROJECTS.find(p=>p.id===curProj)?.name||''));
+    renderSidebar();
+    renderSummary();
+  }catch(e){toast('提交失败：'+(e?.message||e));}
+}
+
+window.cycleLight = function cycleLight(i){
+  const cy={'':' g',g:'y',y:'r',r:''};
+  const pd=GPD(curWeek,curProj);
+  pd.lights[i]=cy[pd.lights[i]||''].trim();
+  renderForm();renderSidebar();
+}
+
+window.addA = function addA(){
+  GPD(curWeek,curProj).actions.push({desc:'',owner:'',dl:'',dim:'0'});
+  renderForm();
+  const rs=document.querySelectorAll('#ar tr');
+  if(rs.length)rs[rs.length-1].querySelector('input')?.focus();
+}
+
+window.delA = function delA(ai){
+  GPD(curWeek,curProj).actions.splice(ai,1);
+  renderForm();
+}
+
+window.addNewWeek = async function addNewWeek(){
+  // simple: create next label from max existing Wxx
+  const nums = WEEKS.map(w=>parseInt(String(w.label).replace(/^W/i,''),10)).filter(n=>!isNaN(n));
+  const n = nums.length ? Math.max(...nums)+1 : 1;
+  const label='W'+n;
+  const range='';
+  try{
+    const { data, error } = await sb.from('weeks').insert({ label, range }).select('*').single();
+    if(error) throw error;
+    WEEKS.push(data);
+    curWeek=data.id;
+    renderSidebar();
+    switchTab('form');
+    toast('已新建 '+label+' 填报周期');
+  }catch(e){toast('新建周次失败：'+(e?.message||e));}
+}
+
+window.showAddProj = function showAddProj(){
+  const ov=document.createElement('div');ov.className='moverlay';
+  ov.innerHTML=`<div class="modal"><div class="modal-t">新建项目</div><div class="mlbl">项目名称</div><input type="text" id="mp-n" placeholder="例：河内风电" style="margin-bottom:12px"><div class="mlbl">地点（越南省份）</div><input type="text" id="mp-s" placeholder="例：Hà Nội" style="margin-bottom:12px"><div class="mlbl">项目经理（可留空）</div><input type="text" id="mp-p" placeholder="姓名"><div class="mfoot"><button class="btn" onclick="this.closest('.moverlay').remove()">取消</button><button class="btn pr" onclick="confirmAdd(this)">确认新建</button></div></div>`;
+  document.body.appendChild(ov);setTimeout(()=>document.getElementById('mp-n').focus(),50);
+}
+
+window.confirmAdd = async function confirmAdd(btn){
+  const name=document.getElementById('mp-n').value.trim();
+  const sub=document.getElementById('mp-s').value.trim();
+  const pm=document.getElementById('mp-p').value.trim();
+  if(!name){document.getElementById('mp-n').focus();return;}
+  try{
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return toast('请先登录');
+
+    const { data: proj, error } = await sb.from('projects').insert({ name, sub, pm, owner_id: user.id }).select('*').single();
+    if(error) throw error;
+
+    // owner auto member
+    const { error: e2 } = await sb.from('project_members').insert({ project_id: proj.id, user_id: user.id, role:'owner' });
+    if(e2) throw e2;
+
+    PROJECTS.push(proj);
+    curProj=proj.id;
+    btn.closest('.moverlay').remove();
+    renderSidebar();
+    switchTab('form');
+    toast('已新建项目：'+name);
+  }catch(e){toast('新建项目失败：'+(e?.message||e));}
+}
+
+window.showDeleteProj = function showDeleteProj(){
+  if(PROJECTS.length<=1){toast('至少保留一个项目');return;}
+  const ov=document.createElement('div');ov.className='moverlay';
+  let opts=PROJECTS.map(p=>`<label style="display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border-light)"><input type="checkbox" value="${p.id}" style="width:14px;height:14px"> ${p.name} <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-left:auto">${p.sub||''}</span></label>`).join('');
+  ov.innerHTML=`<div class="modal"><div class="modal-t">删除项目</div><div style="font-size:12px;color:var(--text-3);margin-bottom:12px">仅项目 owner 可删除；删除后该项目周报将不可访问。</div><div id="dl">${opts}</div><div class="mfoot"><button class="btn" onclick="this.closest('.moverlay').remove()">取消</button><button class="btn da" onclick="confirmDel(this)">删除所选</button></div></div>`;
+  document.body.appendChild(ov);
+}
+
+window.confirmDel = async function confirmDel(btn){
+  const checked=[...document.querySelectorAll('#dl input:checked')].map(c=>c.value);
+  if(!checked.length){btn.closest('.moverlay').remove();return;}
+  if(PROJECTS.length-checked.length<1){toast('至少保留一个项目');return;}
+  try{
+    // delete projects (DB cascades)
+    for(const pid of checked){
+      const { error } = await sb.from('projects').delete().eq('id', pid);
+      if(error) throw error;
+      PROJECTS = PROJECTS.filter(p=>p.id!==pid);
+      // clear cached reports
+      for(const wk of WEEKS){ REPORTS.delete(key(wk.id,pid)); }
+    }
+    if(checked.includes(curProj)) curProj = PROJECTS[0]?.id || null;
+    btn.closest('.moverlay').remove();
+    renderSidebar();
+    if(curTab==='summary') renderSummary(); else switchTab('form');
+    toast('已删除项目');
+  }catch(e){toast('删除失败：'+(e?.message||e));}
+}
+
+// =====================
+// Members UI (owner only)
+// =====================
+window.showMembers = async function showMembers(){
+  if(!curProj) return toast('请先选择项目');
+  try{
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return toast('请先登录');
+
+    const proj = PROJECTS.find(p=>p.id===curProj);
+    if(!proj) return toast('项目不存在');
+    if(proj.owner_id !== user.id) return toast('仅项目 owner 可管理成员');
+
+    const ov=document.createElement('div');ov.className='moverlay';
+    ov.innerHTML=`<div class="modal"><div class="modal-t">成员管理 · ${eh(proj.name)}</div>
+      <div class="mlbl">添加成员（公司邮箱）</div>
+      <input type="text" id="mb-email" placeholder="name@${DOMAIN}" style="margin-bottom:10px">
+      <button class="btn pr" style="width:100%" onclick="addMember()">添加</button>
+      <div style="height:14px"></div>
+      <div class="mlbl">当前成员</div>
+      <div id="mb-list" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:var(--rad);padding:8px;background:var(--bg)"></div>
+      <div class="mfoot"><button class="btn" onclick="this.closest('.moverlay').remove()">关闭</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    await refreshMemberList();
+    setTimeout(()=>document.getElementById('mb-email')?.focus(),50);
+  }catch(e){toast('打开失败：'+(e?.message||e));}
+}
+
+window.refreshMemberList = async function refreshMemberList(){
+  const list = document.getElementById('mb-list');
+  if(!list) return;
+  const { data, error } = await sb.rpc('list_project_members', { p_project_id: curProj });
+  if(error) { list.innerHTML = `<div class="small">加载失败：${eh(error.message)}</div>`; return; }
+  if(!data?.length){ list.innerHTML = `<div class="small">暂无成员</div>`; return; }
+  list.innerHTML = data.map(m=>{
+    const isOwner = m.role==='owner';
+    return `<div style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-light)">
+      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${eh(m.email||'')}</div>
+      <div class="small" style="font-family:var(--mono)">${eh(m.role||'member')}</div>
+      <button class="del" ${isOwner?'disabled style="opacity:.35;cursor:not-allowed"':''} onclick="removeMember('${m.user_id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.addMember = async function addMember(){
+  const email = (document.getElementById('mb-email')?.value||'').trim().toLowerCase();
+  if(!email) return toast('请输入邮箱');
+  if(!email.endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
+  const { error } = await sb.rpc('add_project_member_by_email', { p_project_id: curProj, p_email: email });
+  if(error) return toast('添加失败：'+error.message);
+  toast('已添加成员');
+  document.getElementById('mb-email').value='';
+  await refreshMemberList();
+}
+
+window.removeMember = async function removeMember(userId){
+  const { error } = await sb.rpc('remove_project_member', { p_project_id: curProj, p_user_id: userId });
+  if(error) return toast('移除失败：'+error.message);
+  toast('已移除成员');
+  await refreshMemberList();
+}
+
+// =====================
+// Navigation
+// =====================
+window.switchTab = function switchTab(tab){
+  curTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  ['summary','form','compare'].forEach(v=>{document.getElementById('view-'+v).style.display=v===tab?'block':'none';});
+  if(tab==='summary')renderSummary();else if(tab==='form')renderForm();else renderCompare();
+}
+window.selWeek = function selWeek(id){curWeek=id;renderSidebar();if(curTab==='summary')renderSummary();else if(curTab==='form')renderForm();else renderCompare();}
+window.selProj = function selProj(id){curProj=id;renderSidebar();if(curTab!=='form')switchTab('form');else renderForm();}
+window.openForm = function openForm(id){selProj(id);switchTab('form');}
+
+// =====================
+// Existing exportPDF kept (still uses in-memory)
+// =====================
+window.exportPDF = function exportPDF(){
+  toast('正在生成打印预览，请在打印对话框中选择"另存为 PDF"');
+  setTimeout(()=>{window.print();},200);
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
+function eh(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// Initial
+await syncAuthUI();
+const { data: { session } } = await sb.auth.getSession();
+if(session) await boot();
+else document.getElementById('view-summary').innerHTML='<div class="small">请先登录</div>';
+</script>
+</body>
+</html>
