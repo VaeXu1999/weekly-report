@@ -184,11 +184,13 @@ table.ct tr:last-child td{border-bottom:none}
     <div class="ssec">
       <div class="snav-lbl">登录</div>
       <div id="auth-box" style="padding:8px 0 4px">
-        <div id="auth-loggedout">
-          <div class="small" style="margin-bottom:6px">仅允许 @envision-energy.com</div>
-          <input type="text" id="email" placeholder="name@envision-energy.com" style="margin-bottom:8px">
-          <button class="sbb so" onclick="sendMagicLink()">发送登录链接</button>
-        </div>
+<div id="auth-loggedout">
+  <div class="small" style="margin-bottom:6px">仅允许 @envision-energy.com</div>
+  <input type="text" id="email" placeholder="name@envision-energy.com" style="margin-bottom:8px">
+  <input type="password" id="password" placeholder="密码" style="margin-bottom:8px">
+  <button class="sbb so" onclick="signIn()" style="margin-bottom:4px">登录</button>
+  <button class="sbb da" onclick="signUp()">注册新账号</button>
+</div>
         <div id="auth-loggedin" style="display:none">
           <div class="small" id="me" style="margin-bottom:8px"></div>
           <button class="sbb so" onclick="signOut()">退出登录</button>
@@ -277,13 +279,30 @@ function PST(pd){const v=Object.values(pd.lights).filter(x=>x);if(!v.length)retu
 // =====================
 const DOMAIN = 'envision-energy.com';
 
-window.sendMagicLink = async function sendMagicLink(){
-  const email = (document.getElementById('email')?.value || '').trim();
-  if(!email) return toast('请输入邮箱');
-  if(!email.toLowerCase().endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
-  const { error } = await sb.auth.signInWithOtp({ email });
-  if(error) return toast('发送失败：'+error.message);
-  toast('已发送登录链接，请查收邮箱');
+window.signIn = async function signIn(){
+  const email = (document.getElementById('email')?.value||'').trim();
+  const password = document.getElementById('password')?.value||'';
+  if(!email||!password) return toast('请输入邮箱和密码');
+  if(!email.endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if(error) return toast('登录失败：'+error.message);
+  await syncAuthUI();
+  await boot();
+}
+
+window.signUp = async function signUp(){
+  const email = (document.getElementById('email')?.value||'').trim();
+  const password = document.getElementById('password')?.value||'';
+  if(!email||!password) return toast('请输入邮箱和密码');
+  if(!email.endsWith('@'+DOMAIN)) return toast('仅允许 @'+DOMAIN);
+  if(password.length < 6) return toast('密码至少6位');
+  const { error } = await sb.auth.signUp({ email, password });
+  if(error) return toast('注册失败：'+error.message);
+  toast('注册成功，正在登录…');
+  const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
+  if(e2) return toast('自动登录失败，请手动登录');
+  await syncAuthUI();
+  await boot();
 }
 
 window.signOut = async function signOut(){
